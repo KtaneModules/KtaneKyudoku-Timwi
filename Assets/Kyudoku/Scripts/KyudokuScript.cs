@@ -47,18 +47,11 @@ public class KyudokuScript : MonoBehaviour
         {
             if (gp == puzzleInfo.Given)
                 return false;
-            Grid[gp].AddInteractionPunch();
+
             Audio.PlayGameSoundAtTransform(KMSoundOverride.SoundEffect.ButtonPress, Grid[gp].transform);
 
             if (!Cells[gp].X && !Cells[gp].O)
             {
-                Cells[gp].O = true;
-                Cells[gp].OObj.SetActive(true);
-            }
-            else if (!Cells[gp].X && Cells[gp].O)
-            {
-                Cells[gp].O = false;
-                Cells[gp].OObj.SetActive(false);
                 Cells[gp].X = true;
                 Cells[gp].XObj.SetActive(true);
             }
@@ -66,6 +59,13 @@ public class KyudokuScript : MonoBehaviour
             {
                 Cells[gp].X = false;
                 Cells[gp].XObj.SetActive(false);
+                Cells[gp].O = true;
+                Cells[gp].OObj.SetActive(true);
+            }
+            else if (Cells[gp].O)
+            {
+                Cells[gp].O = false;
+                Cells[gp].OObj.SetActive(false);
             }
             for (int i = 0; i < puzzleInfo.Solution.Length; i++)
                 if (Cells[i].O != puzzleInfo.Solution[i])
@@ -158,7 +158,7 @@ public class KyudokuScript : MonoBehaviour
     }
 
 #pragma warning disable 414
-    private readonly string TwitchHelpMessage = @"!{0} A1,C3,D5 [Toggle cells A1, C3 and D5] | !{0} set A1,C3,D5 [Circle cells A1, C3 and D5] | !{0} reset [Resets the module]";
+    private readonly string TwitchHelpMessage = @"!{0} A1 C3 D5 [Toggle cells A1, C3 and D5] | !{0} set A1 C3 D5 [Circle cells A1, C3 and D5] | !{0} reset [Resets the module]";
 #pragma warning restore 414
     IEnumerator ProcessTwitchCommand(string command)
     {
@@ -168,48 +168,49 @@ public class KyudokuScript : MonoBehaviour
             yield return "sendtochaterror The module is already solved.";
             yield break;
         }
-        else if ((m = Regex.Match(command, @"^\s*([ABCDEF123456, ]+)\s*$", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)).Success)
+        else if ((m = Regex.Match(command, @"^\s*([ABCDEF123456 ]+)\s*$", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)).Success)
         {
             yield return null;
-            var cell = m.Groups[0].Value.Split(',').ToArray();
+            var cell = m.Groups[0].Value.Split(' ');
             for (int i = 0; i < cell.Length; i++)
             {
                 int row;
-                var col = cell[i].Select(ch => ch - 'A' + 1).First() - 1;
-                if (!int.TryParse(cell[i][1].ToString(), out row) || cell[i].Length > 2)
+                var col = cell[i].ToUpperInvariant()[0] - 'A' + 1;
+                if (!int.TryParse(cell[i].Substring(1, 1), out row) || cell[i].Length > 2)
                 {
                     yield return "sendtochaterror Incorrect syntax.";
                     yield break;
                 }
-                Grid[(6 * row + col) - 6].OnInteract();
+                Grid[6 * row - 1 + col - 6].OnInteract();
                 yield return new WaitForSeconds(.05f);
             }
             yield break;
         }
-        else if ((m = Regex.Match(command, @"^\s*set\s*([ABCDEF123456, ]+)\s*$", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)).Success)
+        else if ((m = Regex.Match(command, @"^\s*set\s*([ABCDEF123456 ]+)\s*$", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)).Success)
         {
             yield return null;
-            var cell = m.Groups[1].Value.Split(',').ToArray();
+            var cell = m.Groups[1].Value.Split(' ').ToArray();
             for (int i = 0; i < cell.Length; i++)
             {
                 int row;
-                var col = cell[i].Select(ch => ch - 'A' + 1).First() - 1;
-                if (!int.TryParse(cell[i][1].ToString(), out row) || cell[i].Length > 2)
+                var col = cell[i].ToUpperInvariant()[0] - 'A' + 1;
+                if (!int.TryParse(cell[i].Substring(1, 1), out row) || cell[i].Length > 2)
                 {
                     yield return "sendtochaterror Incorrect syntax.";
                     yield break;
                 }
-                if (Cells[(6 * row + col) - 6].O)
+                if (Cells[6 * row-1 + col - 6].O)
                     continue;
-                else if (Cells[(6 * row + col) - 6].X)
-                {
-                    Grid[(6 * row + col) - 6].OnInteract();
-                    yield return new WaitForSeconds(.05f);
-                    Grid[(6 * row + col) - 6].OnInteract();
-                }
+                else if (Cells[(6 * row-1 + col) - 6].X)
+                    Grid[6 * row + col - 6].OnInteract();
                 else
-                    Grid[(6 * row + col) - 6].OnInteract();
+                {
+                    Grid[6 * row-1 + col - 6].OnInteract();
+                    yield return new WaitForSeconds(.05f);
+                    Grid[6 * row-1 + col - 6].OnInteract();
+                }
                 yield return new WaitForSeconds(.05f);
+
             }
             yield break;
         }
@@ -232,37 +233,15 @@ public class KyudokuScript : MonoBehaviour
         forcedSolve = true;
         for (int i = 0; i < Cells.Length; i++)
         {
-            if (puzzleInfo.Solution[i])
+            while (Cells[i].X != !puzzleInfo.Solution[i])
             {
-                if (!Cells[i].X && !Cells[i].O)
-                {
-                    Cells[i].GridPoint.OnInteract();
-                    yield return new WaitForSeconds(.05f);
-                }
-                else if (!Cells[i].X && Cells[i].O)
-                    continue;
-                else if (Cells[i].X && !Cells[i].O)
-                {
-                    Cells[i].GridPoint.OnInteract();
-                    yield return new WaitForSeconds(.05f);
-                    Cells[i].GridPoint.OnInteract();
-                }
+                Cells[i].GridPoint.OnInteract();
+                yield return new WaitForSeconds(.05f);
             }
-            else
+            while (Cells[i].O != puzzleInfo.Solution[i])
             {
-                if (!Cells[i].X && !Cells[i].O)
-                {
-                    Cells[i].GridPoint.OnInteract();
-                    yield return new WaitForSeconds(.05f);
-                    Cells[i].GridPoint.OnInteract();
-                }
-                else if (!Cells[i].X && Cells[i].O)
-                    continue;
-                else if (Cells[i].X && !Cells[i].O)
-                {
-                    Cells[i].GridPoint.OnInteract();
-                    yield return new WaitForSeconds(.05f);
-                }
+                Cells[i].GridPoint.OnInteract();
+                yield return new WaitForSeconds(.05f);
             }
         }
     }
