@@ -174,13 +174,18 @@ public class KyudokuScript : MonoBehaviour
             var cell = m.Groups[0].Value.Split(' ');
             for (int i = 0; i < cell.Length; i++)
             {
-                int row;
-                var col = cell[i].ToUpperInvariant()[0] - 'A' + 1;
-                if (!int.TryParse(cell[i].Substring(1, 1), out row) || cell[i].Length > 2)
+                if (Regex.IsMatch(cell[i], @"^\s*[ABCDEF][123456]\s*$", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant))
+                    continue;
+                else
                 {
                     yield return "sendtochaterror Incorrect syntax.";
                     yield break;
                 }
+            }
+            for (int i = 0; i < cell.Length; i++)
+            {
+                var row = int.Parse(cell[i].Substring(1, 1));
+                var col = cell[i].ToUpperInvariant()[0] - 'A' + 1;
                 Grid[6 * row - 1 + col - 6].OnInteract();
                 yield return new WaitForSeconds(.05f);
             }
@@ -192,22 +197,27 @@ public class KyudokuScript : MonoBehaviour
             var cell = m.Groups[1].Value.Split(' ').ToArray();
             for (int i = 0; i < cell.Length; i++)
             {
-                int row;
-                var col = cell[i].ToUpperInvariant()[0] - 'A' + 1;
-                if (!int.TryParse(cell[i].Substring(1, 1), out row) || cell[i].Length > 2)
+                if (Regex.IsMatch(cell[i], @"^\s*[ABCDEF][123456]\s*$", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant))
+                    continue;
+                else
                 {
                     yield return "sendtochaterror Incorrect syntax.";
                     yield break;
                 }
-                if (Cells[6 * row-1 + col - 6].O)
+            }
+            for (int i = 0; i < cell.Length; i++)
+            {
+                var row = int.Parse(cell[i].Substring(1, 1));
+                var col = cell[i].ToUpperInvariant()[0] - 'A' + 1;
+                if (Cells[6 * row - 1 + col - 6].O)
                     continue;
-                else if (Cells[(6 * row-1 + col) - 6].X)
+                else if (Cells[(6 * row - 1 + col) - 6].X)
                     Grid[6 * row + col - 6].OnInteract();
                 else
                 {
-                    Grid[6 * row-1 + col - 6].OnInteract();
+                    Grid[6 * row - 1 + col - 6].OnInteract();
                     yield return new WaitForSeconds(.05f);
-                    Grid[6 * row-1 + col - 6].OnInteract();
+                    Grid[6 * row - 1 + col - 6].OnInteract();
                 }
                 yield return new WaitForSeconds(.05f);
 
