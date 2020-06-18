@@ -71,6 +71,7 @@ public class KyudokuScript : MonoBehaviour
                 if (Cells[i].O != puzzleInfo.Solution[i])
                     return false;
             moduleSolved = true;
+            Debug.LogFormat(@"[Kyudoku #{0}] Module solved!", moduleId);
             Module.HandlePass();
             if (!forcedSolve)
             {
@@ -104,6 +105,10 @@ public class KyudokuScript : MonoBehaviour
         }
 
         puzzleInfo = GeneratePuzzle();
+        Debug.LogFormat(@"[Kyudoku #{0}] Puzzle:", moduleId);
+        for (int row = 0; row < 6; row++)
+            Debug.LogFormat(@"[Kyudoku #{0}] {1}", moduleId, Enumerable.Range(0, 6).Select(col => string.Format(puzzleInfo.Given == 6 * row + col ? "[{0}]" : " {0} ", puzzleInfo.NumberGrid[6 * row + col])).Join(""));
+        Debug.LogFormat(@"[Kyudoku #{0}] Solution:", moduleId);
         for (int row = 0; row < 6; row++)
             Debug.LogFormat(@"[Kyudoku #{0}] {1}", moduleId, Enumerable.Range(0, 6).Select(col => puzzleInfo.Solution[6 * row + col] ? "[" + puzzleInfo.NumberGrid[6 * row + col] + "]" : " # ").Join(""));
 
