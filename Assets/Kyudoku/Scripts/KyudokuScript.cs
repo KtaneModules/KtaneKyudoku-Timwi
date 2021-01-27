@@ -22,7 +22,6 @@ public class KyudokuScript : MonoBehaviour
     private bool moduleSolved;
     readonly Cell[] Cells = new Cell[36];
     PuzzleInfo puzzleInfo;
-    bool forcedSolve = false;
 
     struct PuzzleInfo
     {
@@ -45,7 +44,7 @@ public class KyudokuScript : MonoBehaviour
     {
         return delegate
         {
-            if (gp == puzzleInfo.Given)
+            if (gp == puzzleInfo.Given || moduleSolved)
                 return false;
 
             Audio.PlayGameSoundAtTransform(KMSoundOverride.SoundEffect.ButtonPress, Grid[gp].transform);
@@ -73,13 +72,10 @@ public class KyudokuScript : MonoBehaviour
             moduleSolved = true;
             Debug.LogFormat(@"[Kyudoku #{0}] Module solved!", moduleId);
             Module.HandlePass();
-            if (!forcedSolve)
+            for (int i = 0; i < Cells.Length; i++)
             {
-                for (int i = 0; i < Cells.Length; i++)
-                {
-                    if (!puzzleInfo.Solution[i])
-                        Cells[i].XObj.SetActive(true);
-                }
+                if (!puzzleInfo.Solution[i])
+                    Cells[i].XObj.SetActive(true);
             }
             return false;
         };
@@ -245,15 +241,17 @@ public class KyudokuScript : MonoBehaviour
     IEnumerator TwitchHandleForcedSolve()
     {
         Debug.LogFormat(@"[Kyudoku #{0}] Module was force solved by TP", moduleId);
-        forcedSolve = true;
         for (int i = 0; i < Cells.Length; i++)
         {
-            while (Cells[i].X != !puzzleInfo.Solution[i])
+            if (puzzleInfo.Solution[i])
             {
-                Cells[i].GridPoint.OnInteract();
-                yield return new WaitForSeconds(.05f);
+                while (Cells[i].O != puzzleInfo.Solution[i])
+                {
+                    Cells[i].GridPoint.OnInteract();
+                    yield return new WaitForSeconds(.05f);
+                }
             }
-            while (Cells[i].O != puzzleInfo.Solution[i])
+            else if (!puzzleInfo.Solution[i] && Cells[i].O)
             {
                 Cells[i].GridPoint.OnInteract();
                 yield return new WaitForSeconds(.05f);
